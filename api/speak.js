@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
       const request = {
         input: { text: text },
         // Stelle die Sprache und Stimme ein
-        voice: { languageCode: 'de-DE', ssmlGender: 'MALE' },
+        voice: { languageCode: 'de-DE', name: 'de-DE-Studio-B', ssmlGender: 'MALE' },
         audioConfig: { audioEncoding: 'MP3' },
       };
 
