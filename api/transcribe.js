@@ -13,22 +13,33 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Only POST requests are allowed' });
   }
 
-  const form = new IncomingForm();
-  form.uploadDir = path.join(process.cwd(), '/tmp'); // Temporäres Verzeichnis
-  form.keepExtensions = true; // Behalte Dateiendungen
+  const form = new IncomingForm({
+    keepExtensions: true,
+    multiples: false,
+  });
 
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error("Error parsing form data:", err);
-      return res.status(500).json({ message: 'Error parsing form data', error: err.message });
+  // Erstelle temporäres Verzeichnis
+  const tempDir = path.join(process.cwd(), '/tmp');
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+  form.uploadDir = tempDir;
+
+  try {
+    // Promise-basierte Verarbeitung statt Callback
+    const [fields, files] = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        resolve([fields, files]);
+      });
+    });
+
+    const audioFile = files.audio;
+    if (!audioFile || !audioFile.filepath) {
+      throw new Error('No valid audio file provided');
     }
 
-    const audioFile = files.audio; // Name des Felds muss "audio" sein
-    if (!audioFile) {
-      return res.status(400).json({ message: 'No audio file provided' });
-    }
-
-    try {
+    
       const fileStream = fs.createReadStream(audioFile.filepath);
 
       const response = await fetch('https://api.deepgram.com/v1/listen', {
@@ -51,10 +62,13 @@ export default async function handler(req, res) {
         transcription: result.results.channels[0].alternatives[0].transcript,
       });
     } catch (error) {
-      console.error("Error during transcription:", error);
-      res.status(500).json({ message: 'Internal Server Error', error: error.message });
-    } finally {
+        console.error('Error processing request:', error);
+        return res.status(500).json({ 
+          message: 'Error processing audio file', 
+          error: error.message 
+        });
+      } finally {
       fs.unlinkSync(audioFile.filepath); // Temporäre Datei löschen
     }
-  });
+  
 }

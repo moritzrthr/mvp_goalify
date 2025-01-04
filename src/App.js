@@ -99,7 +99,7 @@ function App() {
 
   const handleUserInteraction = () => {
     if (!hasPlayedIntro) {
-      playAudio('/audio/onboarding_1.mp3');
+      // playAudio('/audio/onboarding_1.mp3');
     setHasPlayedIntro(true);
     }
     
