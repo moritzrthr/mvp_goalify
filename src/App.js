@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,17 +12,21 @@ const getDeviceToken = () => {
   return deviceToken;
 };
 
-
 function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  const playAudio = (audioFile, callback) => {
+
+  const playAudio2 = (audioFile, callback) => {
     const audio = new Audio(audioFile);
     audio.play();
     audio.onended = callback;
+  };
+
+  const handleButtonClick = () => {
+    playAudio2('/audio/onboarding_2.mp3', startRecording);
   };
 
   const startRecording = async () => {
@@ -51,20 +55,27 @@ function App() {
     };
   };
 
-  const handleButtonClick = () => {
-    playAudio('/audio/onboarding_2.mp3', startRecording);
+  // Begrüßung beim ersten Laden
+  useEffect(() => {
+    // Abspielen der ersten Audio-Datei beim ersten Laden der Seite
+    
+  }, []);
+
+  const playAudio = (audioFile) => {
+    const audio = new Audio(audioFile);
+    audio.play();
   };
 
-  useEffect(() => {
+  const handleUserInteraction = () => {
     if (!hasPlayedIntro) {
-      playAudio('/audio/onboarding_1.mp3', () => {
-        setHasPlayedIntro(true);
-      });
+      playAudio('/audio/onboarding_1.mp3');
+    setHasPlayedIntro(true);
     }
-  }, [hasPlayedIntro]);
+    
+  };
 
   return (
-    <div className="App">
+    <div className="App" onClick={handleUserInteraction}>
       <header className="App-header">
         <h1>Willkommen bei Goalify</h1>
         <p>
@@ -73,7 +84,7 @@ function App() {
           für deine Ziele.
         </p>
 
-        {!isRecording && hasPlayedIntro ? (
+        {!isRecording ? (
           <button className="start-button" onClick={handleButtonClick}>
             Starte deinen Wandel – Kostenlos ausprobieren.
           </button>
