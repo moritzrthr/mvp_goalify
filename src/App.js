@@ -38,20 +38,50 @@ function App() {
       };
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      console.log("Recording started");
     } catch (err) {
       console.error("Fehler beim Zugriff auf das Mikrofon:", err);
     }
   };
-
+  
   const stopRecording = () => {
     mediaRecorderRef.current.stop();
     mediaRecorderRef.current.onstop = async () => {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
       audioChunksRef.current = [];
-      //here the audio is safed
       setIsRecording(false);
-
-      
+      console.log("Recording stopped, audio blob created");
+  
+      // Audio hochladen und transkribieren
+      const formData = new FormData();
+      formData.append('audio', audioBlob);
+  
+      console.log("Uploading audio for transcription...");
+  
+      try {
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          body: formData,
+        });
+  
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+        }
+  
+        const data = await response.json();
+  
+        if (data.transcription) {
+          console.log('Transcription successful:', data.transcription);
+          alert(`Transcription: ${data.transcription}`);
+        } else {
+          console.error("Transcription failed. Response:", data);
+          alert("Transcription failed. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error during transcription:", error);
+        alert(`Error during transcription: ${error.message}`);
+      }
     };
   };
 
@@ -92,7 +122,7 @@ function App() {
           <div className="recording-section">
             <div className="recording-indicator">Erzähl einfach mal...</div>
             <p>Welcher Typ bist du, welchen Alltag und welche Ziele hast du?</p>
-            <button className="stop-button" onClick={stopRecording}>
+            <button className="start-button" onClick={stopRecording}>
               Fertig erzählt
             </button>
           </div>
