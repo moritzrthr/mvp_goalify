@@ -1,58 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import { v4 as uuidv4 } from 'uuid';
+
+
+const getDeviceToken = () => {
+  let deviceToken = localStorage.getItem('deviceToken');
+  if (!deviceToken) {
+    deviceToken = uuidv4();
+    localStorage.setItem('deviceToken', deviceToken);
+  }
+  return deviceToken;
+};
+
 
 function App() {
   const [isRecording, setIsRecording] = useState(false);
+  const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
-  // Diese Funktion ruft nun die eigene Serverless API auf, um Text in Sprache umzuwandeln
-  const synthesizeSpeech = async (text) => {
-    console.log("Synthesize Speech gestartet mit Text:", text);
-    try {
-      // Anfrage an die Serverless API auf Vercel
-      const response = await fetch('/api/speak', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP-Fehler: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("API-Antwort erhalten:", data);
-
-      // Die zurückgegebene Audio-URL (Base64-kodiert) wird verwendet
-      const audioContent = data.audioUrl;
-      const audio = new Audio(audioContent); // Die Base64-kodierte URL direkt als Audio abspielen
-      audio.play();
-    } catch (error) {
-      console.error('Fehler bei Text-to-Speech:', error);
-    }
+  const playAudio = (audioFile, callback) => {
+    const audio = new Audio(audioFile);
+    audio.play();
+    audio.onended = callback;
   };
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+      mediaRecorderRef.current.start();
       setIsRecording(true);
-      // Der Text für die Begrüßung, der in Sprache umgewandelt werden soll
-      synthesizeSpeech(
-        "Schön, dass du da bist! Erzähle mir von dir und deinen Zielen. Was möchtest du in deinem Leben verändern?"
-      );
     } catch (err) {
       console.error("Fehler beim Zugriff auf das Mikrofon:", err);
     }
   };
 
-  // Begrüßung beim ersten Laden
+  const stopRecording = () => {
+    mediaRecorderRef.current.stop();
+    mediaRecorderRef.current.onstop = async () => {
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+      audioChunksRef.current = [];
+      //here the audio is safed
+      setIsRecording(false);
+
+      
+    };
+  };
+
+  const handleButtonClick = () => {
+    playAudio('/audio/onboarding_2.mp3', startRecording);
+  };
+
   useEffect(() => {
-    const welcomeMessage =
-      "Willkommen bei Goalify! Ich bin dein persönlicher KI-Coach. Klicke auf 'Jetzt durchstarten' wenn du bereit bist.";
-    const timeoutId = setTimeout(() => synthesizeSpeech(welcomeMessage), 1000);
-    return () => clearTimeout(timeoutId);
-  }, []);
+    if (!hasPlayedIntro) {
+      playAudio('/audio/onboarding_1.mp3', () => {
+        setHasPlayedIntro(true);
+      });
+    }
+  }, [hasPlayedIntro]);
 
   return (
     <div className="App">
@@ -64,14 +73,17 @@ function App() {
           für deine Ziele.
         </p>
 
-        {!isRecording ? (
-          <button className="start-button" onClick={startRecording}>
-            Jetzt durchstarten
+        {!isRecording && hasPlayedIntro ? (
+          <button className="start-button" onClick={handleButtonClick}>
+            Starte deinen Wandel – Kostenlos ausprobieren.
           </button>
         ) : (
           <div className="recording-section">
-            <div className="recording-indicator">Aufnahme läuft...</div>
-            <p>Erzähl uns von dir und deinen Zielen. Wir hören zu!</p>
+            <div className="recording-indicator">Erzähl einfach mal...</div>
+            <p>Welcher Typ bist du, welchen Alltag und welche Ziele hast du?</p>
+            <button className="stop-button" onClick={stopRecording}>
+              Fertig erzählt
+            </button>
           </div>
         )}
       </header>
