@@ -56,7 +56,8 @@ function App() {
 
       // Audio hochladen und transkribieren
       const formData = new FormData();
-      formData.append('audio', audioBlob);
+      formData.append('audio', audioBlob, 'recording.wav');
+
 
       try {
         const response = await fetch('/api/transcribe', {
