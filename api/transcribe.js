@@ -1,6 +1,7 @@
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 export const config = {
   api: {
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
   }
-  form.uploadDir = tempDir;
+  form.uploadDir = os.tmpdir();
 
   try {
     // Promise-basierte Verarbeitung statt Callback
