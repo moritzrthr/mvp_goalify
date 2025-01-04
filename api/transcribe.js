@@ -20,10 +20,7 @@ export default async function handler(req, res) {
   });
 
   // Erstelle temporäres Verzeichnis
-  const tempDir = path.join(process.cwd(), '/tmp');
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-  }
+  
   form.uploadDir = os.tmpdir();
 
   try {
