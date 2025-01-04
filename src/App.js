@@ -17,6 +17,8 @@ function App() {
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const [transcriptions, setTranscriptions] = useState([]);
+  const [debugMessage, setDebugMessage] = useState('');
 
 
   const playAudio2 = (audioFile, callback) => {
@@ -50,37 +52,35 @@ function App() {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
       audioChunksRef.current = [];
       setIsRecording(false);
-      console.log("Recording stopped, audio blob created");
-  
+      setDebugMessage('Recording stopped. Uploading audio for transcription...');
+
       // Audio hochladen und transkribieren
       const formData = new FormData();
       formData.append('audio', audioBlob);
-  
-      console.log("Uploading audio for transcription...");
-  
+
       try {
         const response = await fetch('/api/transcribe', {
           method: 'POST',
           body: formData,
         });
-  
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
         }
-  
+
         const data = await response.json();
-  
+
         if (data.transcription) {
-          console.log('Transcription successful:', data.transcription);
-          alert(`Transcription: ${data.transcription}`);
+          setDebugMessage('Transcription successful!');
+          setTranscriptions((prev) => [...prev, data.transcription]);
         } else {
           console.error("Transcription failed. Response:", data);
-          alert("Transcription failed. Please try again.");
+          setDebugMessage('Transcription failed. Please try again.');
         }
       } catch (error) {
         console.error("Error during transcription:", error);
-        alert(`Error during transcription: ${error.message}`);
+        setDebugMessage(`Error during transcription: ${error.message}`);
       }
     };
   };
@@ -126,9 +126,25 @@ function App() {
               Fertig erzählt
             </button>
           </div>
+        )}<div className="debug-section">
+        <h3>Debugging:</h3>
+        <p>{debugMessage}</p>
+      </div>
+
+      <div className="transcriptions-section">
+        <h3>Transkriptionen:</h3>
+        {transcriptions.length > 0 ? (
+          <ul>
+            {transcriptions.map((transcription, index) => (
+              <li key={index}>{transcription}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>Noch keine Transkriptionen vorhanden.</p>
         )}
-      </header>
-    </div>
+      </div>
+    </header>
+  </div>
   );
 }
 
