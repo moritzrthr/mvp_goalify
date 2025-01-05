@@ -17,7 +17,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Korrekte Formidable-Initialisierung
     const form = formidable({
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB
@@ -35,10 +34,9 @@ export default async function handler(req, res) {
 
     // Debug-Logging
     console.log('Files received:', files);
-    console.log('Audio file:', files.audio);
-
-    // Zugriff auf die Audiodatei
-    const audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio;
+    
+    // Zugriff auf die Audiodatei (jetzt als Array)
+    const audioFile = files.audio[0];
 
     if (!audioFile || !audioFile.filepath) {
       throw new Error('No audio file received or invalid file structure');
@@ -47,16 +45,16 @@ export default async function handler(req, res) {
     // Lesen Sie die Audiodatei als Buffer
     const buffer = fs.readFileSync(audioFile.filepath);
 
-    // V3 Syntax für die Transkription
-    const { result } = await deepgram.transcribe({
+    // Neue Deepgram V3 Syntax
+    const response = await deepgram.listen.transcribe(
       buffer,
-      mimetype: 'audio/wav',
-      options: {
+      {
         smart_format: true,
         language: 'de',
-        model: 'enhanced'
+        model: 'enhanced',
+        mime_type: 'audio/wav'
       }
-    });
+    );
 
     // Lösche die temporäre Datei
     try {
@@ -65,7 +63,11 @@ export default async function handler(req, res) {
       console.error('Error deleting temporary file:', unlinkError);
     }
 
-    const transcription = result.channels[0].alternatives[0].transcript;
+    const transcription = response.results?.channels[0]?.alternatives[0]?.transcript;
+
+    if (!transcription) {
+      throw new Error('No transcription result received from Deepgram');
+    }
 
     return res.status(200).json({ transcription });
   } catch (error) {
