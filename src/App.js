@@ -109,7 +109,7 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ text: "Ja, ich versuche deutlich mehr Sport zu machen und ich will auch die Uni noch besser verfolgen und mehr für die Uni Macher. Und bisher ist immer das Problem, die sich so zu früh auf, eben nicht ausm Bett kommen in der Früh und ja." }),
+          body: JSON.stringify({ text: "Ja, ich versuche deutlich mehr Sport zu machen und ich will auch die Uni noch besser verfolgen und mehr für die Uni Macher." }),
         });
         const result = await openAIResponse.json();
         setExtractedInfo(result.result); // Display extracted information
