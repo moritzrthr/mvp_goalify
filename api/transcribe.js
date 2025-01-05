@@ -26,6 +26,7 @@ export default async function handler(req, res) {
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) {
+          console.error('Error parsing form:', err);
           reject(err);
           return;
         }
@@ -50,7 +51,10 @@ export default async function handler(req, res) {
         smart_format: true, // Option für besser formatierte Ergebnisse
         language: 'de', // Sprache
       },
+      
     );
+
+    console.log('Transcription result:', result); // Log transcription result
 
     // Löschen Sie die temporäre Datei
     try {

@@ -79,6 +79,7 @@ function App() {
           }
 
           const data = await response.json();
+          console.log('Transcription data:', data); // Log transcription data
           if (data.transcription) {
             setTranscriptions(prev => [...prev, data.transcription]);
             setDebugMessage('Transkription erfolgreich erstellt!');
