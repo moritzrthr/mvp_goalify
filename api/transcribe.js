@@ -1,75 +1,59 @@
-import { IncomingForm } from 'formidable';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+// pages/api/transcribe.js
+import formidable from 'formidable';
+import { Deepgram } from '@deepgram/sdk';
 
+// Konfigurieren Sie formidable, um das Parsen von Formulardaten zu ermöglichen
 export const config = {
   api: {
-    bodyParser: false, // Deaktiviere den Standard-Body-Parser von Vercel
+    bodyParser: false,
   },
 };
 
+const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
+const deepgram = new Deepgram(deepgramApiKey);
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Only POST requests are allowed' });
+    return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  // Initialize form parser with specific options
-  const form = new IncomingForm({
-    keepExtensions: true,
-    multiples: false,
-    uploadDir: os.tmpdir(),
-    maxFileSize: 10 * 1024 * 1024, // 10MB limit
-  });
-
-  // Erstelle temporäres Verzeichnis
-  
   try {
-    // Parse the form data
+    // Parse das Multipart-Formular
+    const form = formidable();
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
-        if (err) return reject(err);
+        if (err) reject(err);
         resolve([fields, files]);
       });
     });
 
-    // Check if audio file exists and is valid
-    if (!files.audio || !files.audio.filepath) {
-      throw new Error('No valid audio file provided');
-    }
-
     const audioFile = files.audio;
+    
+    // Lesen Sie die Audiodatei als Buffer
+    const buffer = await new Promise((resolve, reject) => {
+      const chunks = [];
+      const readStream = require('fs').createReadStream(audioFile.filepath);
+      
+      readStream.on('data', (chunk) => chunks.push(chunk));
+      readStream.on('end', () => resolve(Buffer.concat(chunks)));
+      readStream.on('error', reject);
+    });
 
-    // Create read stream from the temporary file
-    const fileStream = fs.createReadStream(audioFile.filepath);
-
-      const response = await fetch('https://api.deepgram.com/v1/listen', {
-        method: 'POST',
-        headers: {
-          Authorization: `Token ${process.env.DEEPGRAM_API_KEY}`,
-          'Content-Type': 'audio/wav',
-        },
-        body: fileStream,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error("Deepgram API Error:", result);
-        return res.status(500).json({ message: 'Transcription failed', error: result });
+    // Senden Sie die Audiodatei an Deepgram
+    const response = await deepgram.transcription.preRecorded(
+      { buffer, mimetype: 'audio/wav' },
+      {
+        smart_format: true,
+        language: 'de',
       }
+    );
 
-      res.status(200).json({
-        transcription: result.results.channels[0].alternatives[0].transcript,
-      });
-    } catch (error) {
-        console.error('Error processing request:', error);
-        return res.status(500).json({ 
-          message: 'Error processing audio file', 
-          error: error.message 
-        });
-      } finally {
-      fs.unlinkSync(audioFile.filepath); // Temporäre Datei löschen
-    }
-  
+    // Extrahieren Sie die Transkription
+    const transcription = response.results.channels[0].alternatives[0].transcript;
+
+    return res.status(200).json({ transcription });
+  } catch (error) {
+    console.error('Transcription error:', error);
+    return res.status(500).json({ message: 'Error processing audio', error: error.message });
+  }
 }

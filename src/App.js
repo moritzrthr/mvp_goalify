@@ -13,6 +13,7 @@ const getDeviceToken = () => {
 
 function App() {
   const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
   const mediaRecorderRef = useRef(null);
@@ -41,7 +42,7 @@ function App() {
       };
       mediaRecorderRef.current.start();
       setIsRecording(true);
-      setAudioUrl(null); // Reset audio URL when starting new recording
+      setAudioUrl(null);
       console.log("Recording started");
     } catch (err) {
       console.error("Fehler beim Zugriff auf das Mikrofon:", err);
@@ -54,13 +55,39 @@ function App() {
 
     return new Promise((resolve) => {
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        audioChunksRef.current = [];
-        setIsRecording(false);
-        setDebugMessage('Aufnahme beendet - Sie können sie jetzt abspielen!');
-        resolve({ audioBlob, url });
+        try {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+          audioChunksRef.current = [];
+          setIsRecording(false);
+          setDebugMessage('Aufnahme beendet - Transkription wird erstellt...');
+          
+          // Senden Sie die Audiodatei zur Transkription
+          setIsProcessing(true);
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.wav');
+
+          const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error(`Transkription fehlgeschlagen: ${response.status}`);
+          }
+
+          const data = await response.json();
+          if (data.transcription) {
+            setTranscriptions(prev => [...prev, data.transcription]);
+            setDebugMessage('Transkription erfolgreich erstellt!');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          setDebugMessage(`Fehler bei der Transkription: ${error.message}`);
+        } finally {
+          setIsProcessing(false);
+        }
       };
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
@@ -69,17 +96,11 @@ function App() {
 
   useEffect(() => {
     return () => {
-      // Cleanup: Remove audio URL when component unmounts
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
       }
     };
   }, [audioUrl]);
-
-  const playAudio = (audioFile) => {
-    const audio = new Audio(audioFile);
-    audio.play();
-  };
 
   const handleUserInteraction = () => {
     if (!hasPlayedIntro) {
@@ -98,14 +119,22 @@ function App() {
         </p>
 
         {!isRecording ? (
-          <button className="start-button" onClick={handleButtonClick}>
-            Starte deinen Wandel – Kostenlos ausprobieren.
+          <button 
+            className="start-button" 
+            onClick={handleButtonClick}
+            disabled={isProcessing}
+          >
+            {isProcessing ? 'Verarbeite Aufnahme...' : 'Starte deinen Wandel – Kostenlos ausprobieren.'}
           </button>
         ) : (
           <div className="recording-section">
             <div className="recording-indicator">Erzähl einfach mal...</div>
             <p>Welcher Typ bist du, welchen Alltag und welche Ziele hast du?</p>
-            <button className="start-button" onClick={stopRecording}>
+            <button 
+              className="start-button" 
+              onClick={stopRecording}
+              disabled={isProcessing}
+            >
               Fertig erzählt
             </button>
           </div>
@@ -121,7 +150,7 @@ function App() {
         )}
 
         <div className="debug-section">
-          <h3>Debugging:</h3>
+          <h3>Status:</h3>
           <p>{debugMessage}</p>
         </div>
 

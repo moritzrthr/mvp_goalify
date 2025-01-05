@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@deepgram/sdk": "^3.9.0",
     "@google-cloud/text-to-speech": "^5.7.0",
     "axios": "^1.7.9",
     "busboy": "^1.6.0",
