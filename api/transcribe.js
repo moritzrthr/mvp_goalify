@@ -35,24 +35,20 @@ export default async function handler(req, res) {
 
     console.log('Files received:', files);
 
-    // Greifen Sie auf die Audiodatei zu
     // Greifen Sie auf die Audiodatei zu (aus dem Array extrahieren)
     const audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio;
 
-    
     if (!audioFile || !audioFile.filepath) {
       throw new Error('Keine gültige Audiodatei empfangen.');
     }
 
-    // Lesen Sie die Datei als Buffer
-    const buffer = fs.readFileSync(audioFile.filepath);
-
     // Senden Sie die Datei zur Transkription an Deepgram
-    const { result, error } = await deepgram.listen.prerecorded.transcribeBuffer(
-      { buffer },
+    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+      fs.readFileSync(audioFile.filepath),
       {
         model: 'nova-2', // Modellname (z. B. 'nova-2')
-        language: 'de',  // Spracheinstellung
+        smart_format: true, // Option für besser formatierte Ergebnisse
+        language: 'de', // Sprache
       },
     );
 
