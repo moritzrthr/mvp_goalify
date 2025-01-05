@@ -85,7 +85,7 @@ function App() {
         resolve(data);
 
       } catch (err) {
-        setError('Error uploading audio: ' + err.message);
+        
         resolve(null);
       }
     };
