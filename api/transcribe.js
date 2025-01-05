@@ -36,7 +36,10 @@ export default async function handler(req, res) {
     console.log('Files received:', files);
 
     // Greifen Sie auf die Audiodatei zu
-    const audioFile = files.audio;
+    // Greifen Sie auf die Audiodatei zu (aus dem Array extrahieren)
+    const audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio;
+
+    
     if (!audioFile || !audioFile.filepath) {
       throw new Error('Keine gültige Audiodatei empfangen.');
     }
