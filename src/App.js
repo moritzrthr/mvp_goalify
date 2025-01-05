@@ -16,11 +16,13 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
   const [transcriptions, setTranscriptions] = useState([]);
   const [debugMessage, setDebugMessage] = useState('');
   const [showContactForm, setShowContactForm] = useState(false);
+  const [extractedInfo, setExtractedInfo] = useState(null);
+
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const playAudio2 = (audioFile, callback) => {
     const audio = new Audio(audioFile);
@@ -51,7 +53,7 @@ function App() {
       setDebugMessage("Fehler beim Zugriff auf das Mikrofon: " + err.message);
     }
   }, []);
-  
+
   const stopRecording = useCallback(async () => {
     if (!mediaRecorderRef.current) return;
 
@@ -85,6 +87,16 @@ function App() {
             setTranscriptions(prev => [...prev, data.transcription]);
             setDebugMessage('Transkription erfolgreich erstellt!');
             setShowContactForm(true); // Show contact form after first recording
+            // Sende Transkription an OpenAI zur Analyse
+            const openAIResponse = await fetch('/api/anamnese1', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ text: data.transcription }),
+            });
+            const result = await openAIResponse.json();
+            setExtractedInfo(result.result); // Extrahierte Informationen anzeigen
           }
         } catch (error) {
           console.error('Error during transcription:', error);
@@ -168,6 +180,13 @@ function App() {
             <p>Noch keine Transkriptionen vorhanden.</p>
           )}
         </div>
+
+        {extractedInfo && (
+          <div className="extracted-info">
+            <h3>Extrahierte Informationen:</h3>
+            <p>{extractedInfo}</p>
+          </div>
+        )}
       </header>
     </div>
   );

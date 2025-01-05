@@ -13,6 +13,7 @@
     "formidable": "^3.5.2",
     "mongoose": "^8.9.3",
     "node-fetch": "^2.7.0",
+    "openai": "^4.77.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-scripts": "5.0.1",
