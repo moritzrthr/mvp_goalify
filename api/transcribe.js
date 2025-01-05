@@ -1,14 +1,14 @@
-// pages/api/transcribe.js
 import { createClient } from '@deepgram/sdk';
 import formidable from 'formidable';
 import fs from 'fs';
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false, // Deaktiviert den Body-Parser, damit formidable die Datei verarbeiten kann
   },
 };
 
+// Initialisiere den Deepgram-Client mit dem API-Key
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 
 export default async function handler(req, res) {
@@ -17,11 +17,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Verwenden Sie formidable, um die hochgeladene Datei zu verarbeiten
     const form = formidable({
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB
     });
-    
+
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) {
@@ -32,54 +33,49 @@ export default async function handler(req, res) {
       });
     });
 
-    // Debug-Logging
     console.log('Files received:', files);
-    
-    // Zugriff auf die Audiodatei (jetzt als Array)
-    const audioFile = files.audio[0];
 
+    // Greifen Sie auf die Audiodatei zu
+    const audioFile = files.audio;
     if (!audioFile || !audioFile.filepath) {
-      throw new Error('No audio file received or invalid file structure');
+      throw new Error('Keine gültige Audiodatei empfangen.');
     }
 
-    // Lesen Sie die Audiodatei als Buffer
+    // Lesen Sie die Datei als Buffer
     const buffer = fs.readFileSync(audioFile.filepath);
 
-    // Neue Deepgram V3 Syntax
-    const response = await deepgram.listen.transcribe(
-      buffer,
+    // Senden Sie die Datei zur Transkription an Deepgram
+    const { result, error } = await deepgram.listen.prerecorded.transcribeBuffer(
+      { buffer },
       {
-        smart_format: true,
-        language: 'de',
-        model: 'enhanced',
-        mime_type: 'audio/wav'
-      }
+        model: 'nova-2', // Modellname (z. B. 'nova-2')
+        language: 'de',  // Spracheinstellung
+      },
     );
 
-    // Lösche die temporäre Datei
+    // Löschen Sie die temporäre Datei
     try {
       fs.unlinkSync(audioFile.filepath);
     } catch (unlinkError) {
-      console.error('Error deleting temporary file:', unlinkError);
+      console.error('Fehler beim Löschen der temporären Datei:', unlinkError);
     }
 
-    const transcription = response.results?.channels[0]?.alternatives[0]?.transcript;
-
-    if (!transcription) {
-      throw new Error('No transcription result received from Deepgram');
+    if (error) {
+      throw new Error(`Deepgram API Error: ${error}`);
     }
 
-    return res.status(200).json({ transcription });
+    // Rückgabe der Transkription
+    return res.status(200).json({ transcription: result });
   } catch (error) {
-    console.error('Full error details:', error);
-    return res.status(500).json({ 
-      message: 'Error processing audio', 
+    console.error('Fehlerdetails:', error);
+    return res.status(500).json({
+      message: 'Fehler bei der Verarbeitung der Audiodatei',
       error: error.message,
       details: {
         name: error.name,
         code: error.code,
-        stack: error.stack
-      }
+        stack: error.stack,
+      },
     });
   }
 }
