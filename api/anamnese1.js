@@ -11,7 +11,8 @@ export default async function handler(req, res) {
 
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4", // Du kannst auch das Modell anpassen, je nachdem, was du benötigst
+        model: "gpt-4o-mini", // Du kannst auch das Modell anpassen, je nachdem, was du benötigst
+        store: true,
         messages: [
           {
             role: "user",
@@ -20,8 +21,10 @@ export default async function handler(req, res) {
               ALLTAGSABLAUF
               ZIELE
               PROBLEME
-              BISHERIGE VERSUCHE.
-              Text: "${text}"`,
+              BISHERIGE VERSUCHE
+
+              Fasse die inofs kurz in stichpunkten zusammen und erstelle eine nette empathische frage um die fehlenden infos zu erhalten.
+              //Text: "${text}"`,
           },
         ],
       });

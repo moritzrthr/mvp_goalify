@@ -87,16 +87,6 @@ function App() {
             setTranscriptions(prev => [...prev, data.transcription]);
             setDebugMessage('Transkription erfolgreich erstellt!');
             setShowContactForm(true); // Show contact form after first recording
-            // Sende Transkription an OpenAI zur Analyse
-            const openAIResponse = await fetch('/api/anamnese1', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ text: data.transcription }),
-            });
-            const result = await openAIResponse.json();
-            setExtractedInfo(result.result); // Extrahierte Informationen anzeigen
           }
         } catch (error) {
           console.error('Error during transcription:', error);
@@ -111,6 +101,23 @@ function App() {
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     });
   }, []);
+
+  const handleAnalyzeClick = async () => {
+      try {
+        const openAIResponse = await fetch('/api/anamnese1', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text: "Ja, ich versuche deutlich mehr Sport zu machen und ich will auch die Uni noch besser verfolgen und mehr für die Uni Macher. Und bisher ist immer das Problem, die sich so zu früh auf, eben nicht ausm Bett kommen in der Früh und ja." }),
+        });
+        const result = await openAIResponse.json();
+        setExtractedInfo(result.result); // Display extracted information
+      } catch (error) {
+        console.error('Error during OpenAI analysis:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -135,6 +142,7 @@ function App() {
           Erzähl uns von dir, und wir erstellen einen maßgeschneiderten Plan
           für deine Ziele.
         </p>
+        <button onClick={handleAnalyzeClick}>Analyse starten</button>
 
         {!isRecording ? (
           <button 
@@ -165,6 +173,7 @@ function App() {
               <input type="text" placeholder="E-Mail oder Handynummer" />
               <button type="submit">Absenden</button>
             </form>
+            
           </div>
         )}
 
@@ -190,6 +199,6 @@ function App() {
       </header>
     </div>
   );
-}
+
 
 export default App;
