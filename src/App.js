@@ -28,7 +28,8 @@ function App() {
   };
 
   const handleButtonClick = () => {
-    playAudio2('/audio/onboarding_2.mp3', startRecording);
+    //playAudio2('/audio/onboarding_2.mp3', startRecording);
+    startRecording();
   };
 
   const startRecording = useCallback(async () => {

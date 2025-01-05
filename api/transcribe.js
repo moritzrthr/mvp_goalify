@@ -1,15 +1,14 @@
 // pages/api/transcribe.js
 import formidable from 'formidable';
 import { createClient } from '@deepgram/sdk';
+import fs from 'fs';
 
-// Konfigurieren Sie formidable, um das Parsen von Formulardaten zu ermöglichen
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// Neue Initialisierung für Deepgram v3 mit createClient
 const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 
 export default async function handler(req, res) {
@@ -18,26 +17,32 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse das Multipart-Formular
-    const form = formidable();
+    // Parse das Multipart-Formular mit Promise
+    const form = new formidable.IncomingForm();
+    
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
-        if (err) reject(err);
+        if (err) {
+          reject(err);
+          return;
+        }
         resolve([fields, files]);
       });
     });
 
-    const audioFile = files.audio;
-    
+    // Debug-Logging
+    console.log('Files received:', files);
+    console.log('Audio file:', files.audio);
+
+    // Zugriff auf die Audiodatei
+    const audioFile = Array.isArray(files.audio) ? files.audio[0] : files.audio;
+
+    if (!audioFile || !audioFile.filepath) {
+      throw new Error('No audio file received or invalid file structure');
+    }
+
     // Lesen Sie die Audiodatei als Buffer
-    const buffer = await new Promise((resolve, reject) => {
-      const chunks = [];
-      const readStream = require('fs').createReadStream(audioFile.filepath);
-      
-      readStream.on('data', (chunk) => chunks.push(chunk));
-      readStream.on('end', () => resolve(Buffer.concat(chunks)));
-      readStream.on('error', reject);
-    });
+    const buffer = fs.readFileSync(audioFile.filepath);
 
     // V3 Syntax für die Transkription
     const { result } = await deepgram.transcribe({
@@ -50,15 +55,26 @@ export default async function handler(req, res) {
       }
     });
 
+    // Lösche die temporäre Datei
+    try {
+      fs.unlinkSync(audioFile.filepath);
+    } catch (unlinkError) {
+      console.error('Error deleting temporary file:', unlinkError);
+    }
+
     const transcription = result.channels[0].alternatives[0].transcript;
 
     return res.status(200).json({ transcription });
   } catch (error) {
-    console.error('Transcription error:', error);
+    console.error('Full error details:', error);
     return res.status(500).json({ 
       message: 'Error processing audio', 
       error: error.message,
-      stack: error.stack 
+      details: {
+        name: error.name,
+        code: error.code,
+        stack: error.stack
+      }
     });
   }
 }
