@@ -14,31 +14,34 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Only POST requests are allowed' });
   }
 
+  // Initialize form parser with specific options
   const form = new IncomingForm({
     keepExtensions: true,
     multiples: false,
+    uploadDir: os.tmpdir(),
+    maxFileSize: 10 * 1024 * 1024, // 10MB limit
   });
 
   // Erstelle temporäres Verzeichnis
   
-  form.uploadDir = os.tmpdir();
-
   try {
-    // Promise-basierte Verarbeitung statt Callback
+    // Parse the form data
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
-        if (err) reject(err);
+        if (err) return reject(err);
         resolve([fields, files]);
       });
     });
 
-    const audioFile = files.audio;
-    if (!audioFile || !audioFile.filepath) {
+    // Check if audio file exists and is valid
+    if (!files.audio || !files.audio.filepath) {
       throw new Error('No valid audio file provided');
     }
 
-    
-      const fileStream = fs.createReadStream(audioFile.filepath);
+    const audioFile = files.audio;
+
+    // Create read stream from the temporary file
+    const fileStream = fs.createReadStream(audioFile.filepath);
 
       const response = await fetch('https://api.deepgram.com/v1/listen', {
         method: 'POST',

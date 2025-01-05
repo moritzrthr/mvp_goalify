@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import './App.css';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -31,12 +31,14 @@ function App() {
     playAudio2('/audio/onboarding_2.mp3', startRecording);
   };
 
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
       mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
       mediaRecorderRef.current.start();
       setIsRecording(true);
@@ -44,22 +46,23 @@ function App() {
     } catch (err) {
       console.error("Fehler beim Zugriff auf das Mikrofon:", err);
     }
-  };
+  }, []);
   
-  const stopRecording = () => {
-    mediaRecorderRef.current.stop();
-    mediaRecorderRef.current.onstop = async () => {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-      audioChunksRef.current = [];
-      setIsRecording(false);
-      setDebugMessage('Recording stopped. Uploading audio for transcription...');
-
+  const stopRecording =  useCallback(async () => {
+      if (!mediaRecorderRef.current) return;
+  
+      return new Promise((resolve) => {
+        mediaRecorderRef.current.onstop = async () => {
+          try {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+            audioChunksRef.current = [];
+            setIsRecording(false);
       // Audio hochladen und transkribieren
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.wav');
 
 
-      try {
+     
         const response = await fetch('/api/transcribe', {
           method: 'POST',
           body: formData,
@@ -67,7 +70,7 @@ function App() {
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+          throw new Error(`API CALL FAILED HTTP error! Status: ${response.status}, Message: ${errorText}`);
         }
 
         const data = await response.json();
@@ -79,12 +82,18 @@ function App() {
           console.error("Transcription failed. Response:", data);
           setDebugMessage('Transcription failed. Please try again.');
         }
-      } catch (error) {
-        console.error("Error during transcription:", error);
-        setDebugMessage(`Error during transcription: ${error.message}`);
+        resolve(data);
+
+      } catch (err) {
+        setError('Error uploading audio: ' + err.message);
+        resolve(null);
       }
     };
-  };
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      
+    });
+  }, []);
 
   // Begrüßung beim ersten Laden
   useEffect(() => {
