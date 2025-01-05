@@ -109,7 +109,7 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ text: "Ja, ich versuche deutlich mehr Sport zu machen und ich will auch die Uni noch besser verfolgen und mehr für die Uni Macher." }),
+          body: JSON.stringify({ text: "schreib kurz etwas nettes" }),
         });
         const result = await openAIResponse.json();
         setExtractedInfo(result.result); // Display extracted information
