@@ -1,6 +1,6 @@
 // pages/api/transcribe.js
-import formidable from 'formidable';
 import { createClient } from '@deepgram/sdk';
+import formidable from 'formidable';
 import fs from 'fs';
 
 export const config = {
@@ -17,8 +17,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse das Multipart-Formular mit Promise
-    const form = new formidable.IncomingForm();
+    // Korrekte Formidable-Initialisierung
+    const form = formidable({
+      keepExtensions: true,
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+    });
     
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
