@@ -20,6 +20,7 @@ function App() {
   const audioChunksRef = useRef([]);
   const [transcriptions, setTranscriptions] = useState([]);
   const [debugMessage, setDebugMessage] = useState('');
+  const [showContactForm, setShowContactForm] = useState(false);
 
   const playAudio2 = (audioFile, callback) => {
     const audio = new Audio(audioFile);
@@ -83,6 +84,7 @@ function App() {
           if (data.transcription) {
             setTranscriptions(prev => [...prev, data.transcription]);
             setDebugMessage('Transkription erfolgreich erstellt!');
+            setShowContactForm(true); // Show contact form after first recording
           }
         } catch (error) {
           console.error('Error during transcription:', error);
@@ -97,9 +99,6 @@ function App() {
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     });
   }, []);
-
-
-  
 
   useEffect(() => {
     return () => {
@@ -147,19 +146,15 @@ function App() {
           </div>
         )}
 
-        {audioUrl && (
-          <div className="playback-section">
-            <h3>Ihre Aufnahme anhören:</h3>
-            <audio controls src={audioUrl}>
-              Ihr Browser unterstützt das Audio-Element nicht.
-            </audio>
+        {showContactForm && (
+          <div className="contact-form-section">
+            <h3>Super cool, wir erstellen einen ersten Plan! Gib deine E-Mail oder Handynummer an damit dein Plan gepsiehcert werden kann</h3>
+            <form>
+              <input type="text" placeholder="E-Mail oder Handynummer" />
+              <button type="submit">Absenden</button>
+            </form>
           </div>
         )}
-
-        <div className="debug-section">
-          <h3>Status:</h3>
-          <p>{debugMessage}</p>
-        </div>
 
         <div className="transcriptions-section">
           <h3>Transkriptionen:</h3>
