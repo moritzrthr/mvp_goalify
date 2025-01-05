@@ -10,7 +10,10 @@ export const config = {
 };
 
 const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
-const deepgram = new Deepgram(deepgramApiKey);
+// Neue Initialisierung für Deepgram v3
+const deepgram = new Deepgram({
+  apiKey: deepgramApiKey
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -39,16 +42,17 @@ export default async function handler(req, res) {
       readStream.on('error', reject);
     });
 
-    // Senden Sie die Audiodatei an Deepgram
-    const response = await deepgram.transcription.preRecorded(
-      { buffer, mimetype: 'audio/wav' },
+    // Neue Syntax für Deepgram v3
+    const response = await deepgram.listen.prerecorded.transcribeFile(
+      buffer,
       {
         smart_format: true,
         language: 'de',
+        model: 'enhanced',
       }
     );
 
-    // Extrahieren Sie die Transkription
+    // Neue Struktur der Response in v3
     const transcription = response.results.channels[0].alternatives[0].transcript;
 
     return res.status(200).json({ transcription });
