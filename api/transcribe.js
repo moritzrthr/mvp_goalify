@@ -1,6 +1,6 @@
 // pages/api/transcribe.js
 import formidable from 'formidable';
-import { Deepgram } from '@deepgram/sdk';
+import { createClient } from '@deepgram/sdk';
 
 // Konfigurieren Sie formidable, um das Parsen von Formulardaten zu ermöglichen
 export const config = {
@@ -9,11 +9,8 @@ export const config = {
   },
 };
 
-const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
-// Neue Initialisierung für Deepgram v3
-const deepgram = new Deepgram({
-  apiKey: deepgramApiKey
-});
+// Neue Initialisierung für Deepgram v3 mit createClient
+const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -42,22 +39,26 @@ export default async function handler(req, res) {
       readStream.on('error', reject);
     });
 
-    // Neue Syntax für Deepgram v3
-    const response = await deepgram.listen.prerecorded.transcribeFile(
+    // V3 Syntax für die Transkription
+    const { result } = await deepgram.transcribe({
       buffer,
-      {
+      mimetype: 'audio/wav',
+      options: {
         smart_format: true,
         language: 'de',
-        model: 'enhanced',
+        model: 'enhanced'
       }
-    );
+    });
 
-    // Neue Struktur der Response in v3
-    const transcription = response.results.channels[0].alternatives[0].transcript;
+    const transcription = result.channels[0].alternatives[0].transcript;
 
     return res.status(200).json({ transcription });
   } catch (error) {
     console.error('Transcription error:', error);
-    return res.status(500).json({ message: 'Error processing audio', error: error.message });
+    return res.status(500).json({ 
+      message: 'Error processing audio', 
+      error: error.message,
+      stack: error.stack 
+    });
   }
 }
