@@ -16,15 +16,8 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "user",
-            content: `Extrahiere aus folgendem Text die folgenden Informationen: 
-              ALTER/BESCHÄFTIGUNG
-              ALLTAGSABLAUF
-              ZIELE
-              PROBLEME
-              BISHERIGE VERSUCHE
-
-              Fasse die inofs kurz in stichpunkten zusammen und erstelle eine nette empathische frage um die fehlenden infos zu erhalten.
-              //Text: "${text}"`,
+            content: `
+              Fasse die inofs kurz zusammen: "${text}"`,
           },
         ],
       });
