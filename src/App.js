@@ -84,16 +84,21 @@ function App() {
             setDebugMessage('Transkription erfolgreich erstellt!');
           }
         } catch (error) {
-          console.error('Error:', error);
+          console.error('Error during transcription:', error);
           setDebugMessage(`Fehler bei der Transkription: ${error.message}`);
+          setTranscriptions(prev => [...prev, "Transkription fehlgeschlagen."]);
         } finally {
           setIsProcessing(false);
         }
+        
       };
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     });
   }, []);
+
+
+  
 
   useEffect(() => {
     return () => {
