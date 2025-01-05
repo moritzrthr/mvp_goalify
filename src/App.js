@@ -117,7 +117,7 @@ function App() {
         console.error('Error during OpenAI analysis:', error);
       }
     }
-  };
+  
 
   useEffect(() => {
     return () => {
@@ -199,6 +199,6 @@ function App() {
       </header>
     </div>
   );
-
+}
 
 export default App;
