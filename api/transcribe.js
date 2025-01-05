@@ -66,7 +66,11 @@ export default async function handler(req, res) {
     if (error) {
       throw new Error(`Deepgram API Error: ${error}`);
     }
-    const transcription = response.results?.channels[0]?.alternatives[0]?.transcript;
+
+    console.log('Result Structure:', JSON.stringify(result, null, 2));
+
+
+    const transcription = result?.results?.channels[0]?.alternatives[0]?.transcript;
 
     if (!transcription) {
       throw new Error('No transcription result received from Deepgram');
